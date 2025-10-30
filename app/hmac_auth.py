@@ -1,6 +1,3 @@
-"""
-Módulo para la generación y verificación de códigos de autenticación de mensajes (HMAC).
-"""
 
 import os
 import hmac
@@ -8,7 +5,6 @@ import logging
 import secrets
 
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.backends import default_backend
 
 from config import HMAC_CONFIG
 
@@ -30,10 +26,18 @@ class HmacManager:
         Returns:
             El HMAC en formato hexadecimal.
         """
-        h = hmac.new(key, data, getattr(hashes, HMAC_CONFIG['ALGORITHM'].upper())())
+        hash_class = getattr(hashes, HMAC_CONFIG['ALGORITHM'].upper())
+        
+        
+        # Una solución más simple y compatible con el módulo `hmac` estándar es usar `hashlib`:
+        import hashlib
+        hash_func = getattr(hashlib, HMAC_CONFIG['ALGORITHM'].lower())
+        
+        h = hmac.new(key, data, hash_func)
+        
         hmac_hex = h.hexdigest()
         logger.info(f"HMAC generado con HMAC-{HMAC_CONFIG['ALGORITHM'].upper()}.")
-        logger.info(f"  - Longitud de clave: {len(key) * 8} bits")
+        logger.info(f" 	- Longitud de clave: {len(key) * 8} bits")
         return hmac_hex
 
     def verify_hmac(self, data: bytes, key: bytes, expected_hmac: str) -> bool:

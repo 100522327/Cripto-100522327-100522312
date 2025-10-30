@@ -1,5 +1,3 @@
-# app/crypto_asymmetric.py
-
 """
 Módulo para cifrado y descifrado asimétrico usando RSA con padding OAEP.
 Su principal función en este proyecto es proteger las claves simétricas.
