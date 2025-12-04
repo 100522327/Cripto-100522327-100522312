@@ -87,7 +87,7 @@ PKI_CONFIG = {
     'HASH_ALGORITHM': 'SHA256',
 }
 
-# Información de la organización (para certificados)
+# Información de la organización
 ORG_INFO = {
     'COUNTRY': 'ES',
     'STATE': 'Madrid',

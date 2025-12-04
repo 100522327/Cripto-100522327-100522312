@@ -81,7 +81,7 @@ class SecureSendApp:
             print("=" * 60)
             print("Se creará la infraestructura de certificados...")
 
-            # Contraseñas para las CAs (en producción vendrían de config seguro)
+            # Contraseñas para las CAs
             ROOT_CA_PASSWORD = "RootCa"
             SUB_CA_PASSWORD = "SubCa"
 
@@ -357,7 +357,6 @@ class SecureSendApp:
         print(f"   {message}")
         print("=" * 50)
 
-    # --- MÉTODO PARA EL PASO 4 ---
     def verify_document_signature(self):
         """Verifica la firma digital de un documento."""
         print("\n" + "-" * 50)

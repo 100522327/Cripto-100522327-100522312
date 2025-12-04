@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Módulo de gestión de PKI (Public Key Infrastructure) para la práctica de
-Criptografía y Seguridad Informática.
+Módulo de gestión de PKI (Public Key Infrastructure)
 
 Este módulo implementa la jerarquía de Autoridades de Certificación (CAs)
 descrita en el enunciado de la práctica. Concretamente, establece una
@@ -17,9 +16,7 @@ infraestructura de clave pública de dos niveles:
 2.  **Autoridad de Certificación Subordinada (AC2):** Es una entidad de confianza
     intermedia. Su certificado está firmado por la AC Raíz (AC1). Su propósito
     es emitir, firmar y gestionar los certificados de los usuarios finales
-    (end-entities), como se pide en la práctica. Esta separación de roles
-    (Raíz para firmar CAs, Subordinada para firmar usuarios) es una buena
-    práctica de seguridad. Permite mantener la clave de la AC Raíz offline
+    (end-entities). Esta separación de roles,permite mantener la clave de la AC Raíz offline
     y segura, usando solo la clave de la AC Subordinada para operaciones
     más frecuentes.
 
@@ -130,8 +127,7 @@ class PKIManager:
             private_key (rsa.RSAPrivateKey): La clave privada a guardar.
             path (Path): La ruta del archivo donde se guardará la clave.
             password (Optional[str]): Contraseña opcional para cifrar la clave
-                                      privada. Es una práctica de seguridad
-                                      altamente recomendada.
+                                      privada.
         """
         # Si se proporciona una contraseña, se utiliza el mejor algoritmo de
         # cifrado disponible para proteger el archivo de la clave.
@@ -210,7 +206,7 @@ class PKIManager:
         3. El emisor (issuer) y el sujeto (subject) del certificado son la misma AC Raíz.
         4. Se añaden extensiones críticas que la identifican como una CA.
         5. El certificado se firma usando su propia clave privada (autofirmado).
-        6. Guarda la clave privada (idealmente cifrada) y el certificado público.
+        6. Guarda la clave privada (cifrada) y el certificado público.
 
         Args:
             password (Optional[str]): Contraseña opcional para proteger la clave privada de la AC Raíz.
@@ -262,20 +258,22 @@ class PKIManager:
             critical=True,
         )
 
-        # La extensión KeyUsage define los propósitos para los que se puede usar la clave pública.
+        # La extensión KeyUsage define qué puede hacer técnicamente esta clave.
         cert_builder = cert_builder.add_extension(
             x509.KeyUsage(
-                digital_signature=True,
-                key_cert_sign=True,  # ¡CRÍTICO! Permite a esta clave firmar otros certificados.
-                crl_sign=True,  # Permite firmar Listas de Revocación de Certificados.
-                key_encipherment=False,
-                content_commitment=False,
-                data_encipherment=False,
-                key_agreement=False,
-                encipher_only=False,
-                decipher_only=False,
+                digital_signature=True,  # Permite verificar firmas digitales genéricas (autenticación básica).
+                key_cert_sign=True, # Permite FIRMAR y EMITIR certificados para otros (ser una CA).
+                crl_sign=True,  # Permite firmar la "Lista Negra" (CRLs) para revocar certificados robados.
+                key_encipherment=False, # La CA no debe usarse para cifrar claves de sesión (eso lo hacen los usuarios).
+                content_commitment=False, # La CA no firma contratos legales ("No repudio"); solo firma identidades.
+                data_encipherment=False,  # La CA NUNCA se usa para cifrar datos o archivos directamente.
+                key_agreement=False,  # No se usa para protocolos de acuerdo de claves (como Diffie-Hellman).
+                encipher_only=False,  # Solo aplica si key_agreement fuera True.
+                                      # Significaría "Con la clave que acordemos, yo solo puedo cifrar datos para enviártelos a ti. No puedo descifrar nada".
+                decipher_only= False, # Solo aplica si key_agreement fuera True.
+                                      # Significaria "Con la clave que acordemos, yo solo puedo descifrar lo que tú me envíes".
             ),
-            critical=True,
+            critical=True,  # Si un software no entiende estos permisos, DEBE rechazar el certificado.
         )
 
         # SubjectKeyIdentifier proporciona un identificador único para la clave pública del certificado.
@@ -374,23 +372,33 @@ class PKIManager:
             critical=True,
         )
 
+        # El uso de clave es similar al de la raíz: puede firmar certificados y CRLs.
         cert_builder = cert_builder.add_extension(
-            # El uso de clave es similar al de la raíz: puede firmar certificados y CRLs.
             x509.KeyUsage(
-                digital_signature=True, key_cert_sign=True, crl_sign=True,
-                key_encipherment=False, content_commitment=False, data_encipherment=False,
-                key_agreement=False, encipher_only=False, decipher_only=False,
+                digital_signature=True,  # Permite verificar firmas digitales genéricas (autenticación básica).
+                key_cert_sign=True, # Permite FIRMAR y EMITIR certificados para otros (ser una CA).
+                crl_sign=True,  # Permite firmar la "Lista Negra" (CRLs) para revocar certificados robados.
+                key_encipherment=False, # La CA no debe usarse para cifrar claves de sesión (eso lo hacen los usuarios).
+                content_commitment=False, # La CA no firma contratos legales ("No repudio"); solo firma identidades.
+                data_encipherment=False,  # La CA NUNCA se usa para cifrar datos o archivos directamente.
+                key_agreement=False,  # No se usa para protocolos de acuerdo de claves (como Diffie-Hellman).
+                encipher_only=False,  # Solo aplica si key_agreement fuera True.
+                                      # Significaría "Con la clave que acordemos, yo solo puedo cifrar datos para enviártelos a ti. No puedo descifrar nada".
+                decipher_only= False, # Solo aplica si key_agreement fuera True.
+                                      # Significaria "Con la clave que acordemos, yo solo puedo descifrar lo que tú me envíes".
             ),
-            critical=True,
+            critical=True,  # Si un software no entiende estos permisos, DEBE rechazar el certificado.
         )
 
+        # SubjectKeyIdentifier: Identificador único (hash) de la clave pública de esta AC.
+        # Servirá para que los certificados hijos (usuarios) puedan identificar a esta entidad como su emisor.
         cert_builder = cert_builder.add_extension(
             x509.SubjectKeyIdentifier.from_public_key(sub_public_key),
             critical=False,
         )
 
-        # AuthorityKeyIdentifier: ¡Extensión CLAVE para la cadena!
-        # Contiene el identificador (SubjectKeyIdentifier) del certificado de la CA que firmó este.
+        # AuthorityKeyIdentifier: Identificador de la clave pública del Emisor (AC Raíz).
+        # Este es el eslabón físico que conecta este certificado con su padre (la Raíz) en la cadena de confianza.
         # Así, un sistema puede encontrar fácilmente el certificado del emisor (la AC Raíz) para verificar la firma.
         cert_builder = cert_builder.add_extension(
             x509.AuthorityKeyIdentifier.from_issuer_public_key(root_ca_key.public_key()),
@@ -495,7 +503,7 @@ class PKIManager:
         # ExtendedKeyUsage: Especifica usos más concretos. Muy común en TLS/SSL y S/MIME.
         cert_builder = cert_builder.add_extension(
             x509.ExtendedKeyUsage([
-                x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH,  # Autenticación de cliente (ej. en una conexión web)
+                x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH,  # Autenticación de cliente
                 x509.oid.ExtendedKeyUsageOID.EMAIL_PROTECTION,  # Para firmar/cifrar correos
             ]),
             critical=False,
