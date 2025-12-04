@@ -81,12 +81,19 @@ class SecureSendApp:
             print("=" * 60)
             print("Se creará la infraestructura de certificados...")
 
-            # Crear AC Raíz
-            if self.pki_manager.create_root_ca():
+            # Contraseñas para las CAs (en producción vendrían de config seguro)
+            ROOT_CA_PASSWORD = "RootCa"
+            SUB_CA_PASSWORD = "SubCa"
+
+            # Crear AC Raíz con contraseña
+            if self.pki_manager.create_root_ca(password=ROOT_CA_PASSWORD):
                 print("✅ Autoridad de Certificación Raíz (AC1) creada")
 
-            # Crear AC Subordinada
-            if self.pki_manager.create_subordinate_ca():
+            # Crear AC Subordinada con contraseña
+            if self.pki_manager.create_subordinate_ca(
+                    root_ca_password=ROOT_CA_PASSWORD,
+                    sub_ca_password=SUB_CA_PASSWORD
+            ):
                 print("✅ Autoridad de Certificación Subordinada (AC2) creada")
 
             print("=" * 60)
@@ -269,8 +276,17 @@ class SecureSendApp:
             print("❌ No se pudo cargar tu clave pública. Genera primero tu par de claves.")
             return
 
-        # Emitir el certificado
-        if self.pki_manager.issue_user_certificate(username, email, public_key):
+        # Contraseña de la AC Subordinada
+        SUB_CA_PASSWORD = "SubCa"
+
+        # Emitir el certificado pasando la contraseña
+        if self.pki_manager.issue_user_certificate(
+                username,
+                email,
+                public_key,
+                sub_ca_password=SUB_CA_PASSWORD
+        ):
+
             self.auth_manager.update_user_certificate_status(username, True)
             self.current_user['certificate_issued'] = True
             print("\n✅ ¡Certificado digital emitido exitosamente!")

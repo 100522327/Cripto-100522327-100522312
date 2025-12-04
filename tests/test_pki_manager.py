@@ -100,8 +100,7 @@ class PKITester:
                 root_key.unlink()
                 print("  ⚠ Clave raíz anterior eliminada")
 
-            # Crear AC Raíz
-            result = self.pki_manager.create_root_ca()
+            result = self.pki_manager.create_root_ca(password="RootCa")
 
             # Verificar que se crearon los archivos
             cert_exists = root_cert.exists()
@@ -177,8 +176,10 @@ class PKITester:
                 sub_key.unlink()
                 print("  ⚠ Clave subordinada anterior eliminada")
 
-            # Crear AC Subordinada
-            result = self.pki_manager.create_subordinate_ca()
+            result = self.pki_manager.create_subordinate_ca(
+                root_ca_password="RootCa",
+                sub_ca_password="SecureSubCA2024!"
+            )
 
             # Verificar que se crearon los archivos
             cert_exists = sub_cert.exists()
@@ -305,7 +306,13 @@ class PKITester:
                     print(f"  [✗] No se pudo cargar clave pública: {username}")
                     continue
 
-                result = self.pki_manager.issue_user_certificate(username, email, public_key)
+                result = self.pki_manager.issue_user_certificate(
+                    username,
+                    email,
+                    public_key,
+                    sub_ca_password="SecureSubCA2024!"
+                )
+
                 if result:
                     print(f"  [✓] Certificado emitido: {username}")
                     self.auth_manager.update_user_certificate_status(username, True)
