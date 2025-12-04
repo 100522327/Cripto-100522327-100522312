@@ -21,6 +21,7 @@ from cifrado_simetrico import SymmetricEncryptor
 from cifrado_asimetrico import AsymmetricEncryptor
 from hmac_auth import HmacManager
 from pki_manager import PKIManager
+from digital_signature import SignatureManager  # <--- NUEVO: Importación para el Paso 4
 from config import LOG_CONFIG, DOCUMENTS_DIR, USER_CERTS_DIR
 
 #Configuración del Logging
@@ -64,6 +65,7 @@ class SecureSendApp:
         self.asym_encryptor = AsymmetricEncryptor()
         self.hmac_manager = HmacManager()
         self.pki_manager = PKIManager()
+        self.signature_manager = SignatureManager() # <--- NUEVO: Inicialización Paso 4
         self.current_user = None
         self.logger = logging.getLogger(__name__)
 
@@ -133,9 +135,10 @@ class SecureSendApp:
         elif not has_cert:
             print("2. Solicitar certificado digital")
         else:
-            print("2. Subir documento seguro")
+            print("2. Subir, Firmar y Cifrar documento") # <--- MODIFICADO
             print("3. Ver mis documentos (próximamente)")
             print("4. Ver mi certificado digital")
+            print("5. Verificar firma digital de un archivo") # <--- NUEVO
 
         print("0. Cerrar sesión")
         print("=" * 50)
@@ -338,14 +341,43 @@ class SecureSendApp:
         print(f"   {message}")
         print("=" * 50)
 
+    # --- NUEVO MÉTODO PARA EL PASO 4 ---
+    def verify_document_signature(self):
+        """Verifica la firma digital de un documento."""
+        print("\n" + "-" * 50)
+        print("VERIFICACIÓN DE FIRMA DIGITAL")
+        print("-" * 50)
+        
+        file_path_str = input("Ruta del fichero original (sin cifrar): ").strip()
+        sig_path_str = input("Ruta del fichero de firma (.sig): ").strip()
+        signer_user = input("Nombre de usuario del firmante: ").strip()
+        
+        file_path = Path(file_path_str)
+        sig_path = Path(sig_path_str)
+        
+        if not file_path.exists() or not sig_path.exists():
+            print("❌ Error: Ficheros no encontrados.")
+            return
+            
+        original_data = file_path.read_bytes()
+        signature_data = sig_path.read_bytes()
+        
+        print(f"\nVerificando firma de '{signer_user}'...")
+        is_valid = self.signature_manager.verify_signature(original_data, signature_data, signer_user)
+        
+        if is_valid:
+            print("\n✅ FIRMA VÁLIDA: Documento auténtico e íntegro.")
+        else:
+            print("\n❌ FIRMA INVÁLIDA: Documento alterado o firmante incorrecto.")
+
     def upload_document(self):
-        """Gestiona el flujo completo de subir y asegurar un documento."""
+        """Gestiona subida, FIRMA (Paso 4) y cifrado."""
         username = self.current_user['username']
         print("\n" + "-" * 50)
-        print("SUBIR DOCUMENTO SEGURO")
+        print("SUBIR, FIRMAR Y CIFRAR DOCUMENTO")
         print("-" * 50)
 
-        # Verificar que tiene certificado
+        # Verificar que tiene certificado (Lógica de tu compañero - INTACTA)
         if not self.current_user.get('certificate_issued', False):
             print("❌ Necesitas un certificado digital primero.")
             print("   Solicita tu certificado en la opción 2")
@@ -359,6 +391,20 @@ class SecureSendApp:
             return
 
         original_data = file_path.read_bytes()
+        
+        # --- INICIO LÓGICA PASO 4 (FIRMA) ---
+        print("\n🔐 Autorización de Firma Digital (No Repudio)")
+        sign_password = getpass.getpass(f"Contraseña de {username} para firmar: ")
+        
+        print("Generando firma digital RSA-PSS...")
+        signature = self.signature_manager.sign_document(original_data, username, sign_password)
+        
+        if not signature:
+            print("\n❌ Error al firmar. Verifique su contraseña.")
+            return
+        print("✅ Documento firmado correctamente.")
+        # --- FIN LÓGICA PASO 4 ---
+
         print("\nIniciando proceso de cifrado y autenticación...")
 
         # SECUENCIA CRIPTOGRÁFICA
@@ -396,11 +442,16 @@ class SecureSendApp:
         encrypted_file_path = user_docs_dir / f"{file_path.name}.enc"
         encrypted_file_path.write_bytes(encrypted_document)
 
+        # --- GUARDAR FIRMA DIGITAL ---
+        signature_path = user_docs_dir / f"{file_path.name}.sig"
+        signature_path.write_bytes(signature)
+
         # Crear un fichero de metadatos con las claves cifradas y el HMAC
         metadata = {
             'encrypted_sym_key_hex': encrypted_sym_key.hex(),
             'encrypted_hmac_key_hex': encrypted_hmac_key.hex(),
             'hmac_tag': hmac_tag,
+            'signature_file': signature_path.name # Referencia a la firma
         }
         meta_file_path = user_docs_dir / f"{file_path.name}.meta"
         with open(meta_file_path, 'w') as f:
@@ -408,9 +459,10 @@ class SecureSendApp:
 
         print("\n✅ DOCUMENTO SUBIDO Y ASEGURADO CORRECTAMENTE")
         print(f"   - Fichero cifrado: {encrypted_file_path.name}")
-        print(f"   - Metadatos: {meta_file_path.name}")
+        print(f"   - Firma Digital:   {signature_path.name}") # Mostrar firma
+        print(f"   - Metadatos:       {meta_file_path.name}")
         print(f"   - Protegido con tu certificado digital")
-        self.logger.info(f"Usuario {username} subió el documento {file_path.name} de forma segura.")
+        self.logger.info(f"Usuario {username} subió y firmó el documento {file_path.name}.")
 
     # Bucles Principales de la Aplicación
 
@@ -437,6 +489,11 @@ class SecureSendApp:
                     self.view_user_certificate()
                 else:
                     print("\n⚠️  Funcionalidad en desarrollo.")
+            elif choice == "5": # <--- NUEVA OPCIÓN
+                if self.current_user.get('certificate_issued'):
+                   self.verify_document_signature()
+                else:
+                   print("Necesitas configurar tu entorno primero.")
             elif choice == "0":
                 print(f"\n👋 Sesión cerrada. ¡Hasta luego, {self.current_user['username']}!")
                 self.logger.info(f"Usuario cerró sesión: {self.current_user['username']}")
