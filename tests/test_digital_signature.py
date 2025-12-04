@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-# --- CORRECCIÓN IMPORTANTE ---
 # Añadir el directorio 'app' al path para simular el entorno de main.py
 # Esto permite que los módulos dentro de 'app' se vean entre sí (ej. key_manager)
 app_path = Path(__file__).parent.parent / 'app'
@@ -30,7 +29,6 @@ class TestDigitalSignature(unittest.TestCase):
         
         # 2. Parchear USERS_DIR en key_manager para que apunte al directorio temporal
         #    Esto evita que los tests ensucien tu carpeta real de usuarios.
-        #    IMPORTANTE: Parcheamos 'key_manager.USERS_DIR', no 'app.key_manager'
         self.patcher = patch('key_manager.USERS_DIR', self.test_users_dir)
         self.mock_users_dir = self.patcher.start()
 
@@ -71,7 +69,7 @@ class TestDigitalSignature(unittest.TestCase):
         (Prueba de Integridad)
         """
         original_data = b"Este es el mensaje original."
-        modified_data = b"Este es el mensaje originl."  # Falta una 'a'
+        modified_data = b"Este es el mensaje originl."  
         
         # 1. Firmar original
         signature = self.sig_manager.sign_document(original_data, self.username, self.password)

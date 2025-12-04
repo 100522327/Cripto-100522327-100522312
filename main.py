@@ -21,7 +21,7 @@ from cifrado_simetrico import SymmetricEncryptor
 from cifrado_asimetrico import AsymmetricEncryptor
 from hmac_auth import HmacManager
 from pki_manager import PKIManager
-from digital_signature import SignatureManager  # <--- NUEVO: Importación para el Paso 4
+from digital_signature import SignatureManager 
 from config import LOG_CONFIG, DOCUMENTS_DIR, USER_CERTS_DIR
 
 #Configuración del Logging
@@ -65,7 +65,7 @@ class SecureSendApp:
         self.asym_encryptor = AsymmetricEncryptor()
         self.hmac_manager = HmacManager()
         self.pki_manager = PKIManager()
-        self.signature_manager = SignatureManager() # <--- NUEVO: Inicialización Paso 4
+        self.signature_manager = SignatureManager() 
         self.current_user = None
         self.logger = logging.getLogger(__name__)
 
@@ -135,10 +135,10 @@ class SecureSendApp:
         elif not has_cert:
             print("2. Solicitar certificado digital")
         else:
-            print("2. Subir, Firmar y Cifrar documento") # <--- MODIFICADO
+            print("2. Subir, Firmar y Cifrar documento")
             print("3. Ver mis documentos (próximamente)")
             print("4. Ver mi certificado digital")
-            print("5. Verificar firma digital de un archivo") # <--- NUEVO
+            print("5. Verificar firma digital de un archivo") 
 
         print("0. Cerrar sesión")
         print("=" * 50)
@@ -341,7 +341,7 @@ class SecureSendApp:
         print(f"   {message}")
         print("=" * 50)
 
-    # --- NUEVO MÉTODO PARA EL PASO 4 ---
+    # --- MÉTODO PARA EL PASO 4 ---
     def verify_document_signature(self):
         """Verifica la firma digital de un documento."""
         print("\n" + "-" * 50)
@@ -377,7 +377,7 @@ class SecureSendApp:
         print("SUBIR, FIRMAR Y CIFRAR DOCUMENTO")
         print("-" * 50)
 
-        # Verificar que tiene certificado (Lógica de tu compañero - INTACTA)
+        # Verificar que tiene certificado 
         if not self.current_user.get('certificate_issued', False):
             print("❌ Necesitas un certificado digital primero.")
             print("   Solicita tu certificado en la opción 2")
@@ -489,7 +489,7 @@ class SecureSendApp:
                     self.view_user_certificate()
                 else:
                     print("\n⚠️  Funcionalidad en desarrollo.")
-            elif choice == "5": # <--- NUEVA OPCIÓN
+            elif choice == "5":
                 if self.current_user.get('certificate_issued'):
                    self.verify_document_signature()
                 else:

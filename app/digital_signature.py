@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class SignatureManager:
     """
     Gestor de firmas digitales.
-    Permite firmar documentos (bytes) con clave privada y verificarlos con clave pública.
+    Permite firmar documentos con clave privada y verificarlos con clave pública.
     """
 
     def __init__(self):
@@ -127,55 +127,3 @@ class SignatureManager:
         except Exception as e:
             logger.error(f"Error inesperado durante la verificación: {e}")
             return False
-
-# --- Bloque de pruebas unitarias ---
-def test_signature_module():
-    """Prueba rápida del módulo"""
-    import os
-    
-    print("=== TEST DEL MÓDULO DE FIRMA DIGITAL ===")
-    
-    # Setup básico
-    sig_manager = SignatureManager()
-    km = KeyManager()
-    user = "test_signer"
-    pwd = "StrongPassword1!"
-    
-    # Asegurar que el usuario tiene claves para el test
-    print(f"Generando claves temporales para {user}...")
-    km.generate_and_save_key_pair(user, pwd)
-    
-    # Crear un documento falso
-    doc_content = b"Este es un contrato confidencial muy importante."
-    print(f"Documento original: {doc_content}")
-    
-    # 1. FIRMAR
-    print("\n1. Firmando documento...")
-    signature = sig_manager.sign_document(doc_content, user, pwd)
-    
-    if signature:
-        print(f"   ✓ Firma generada (Longitud: {len(signature)} bytes)")
-    else:
-        print("   ✗ Error generando firma")
-        return
-
-    # 2. VERIFICAR (Caso Éxito)
-    print("\n2. Verificando firma correcta...")
-    is_valid = sig_manager.verify_signature(doc_content, signature, user)
-    if is_valid:
-        print("   ✓ Verificación exitosa")
-    else:
-        print("   ✗ Fallo en verificación válida")
-
-    # 3. VERIFICAR (Caso Ataque de Integridad)
-    print("\n3. Verificando documento manipulado...")
-    doc_manipulado = b"Este es un contrato confidencial muy importante MODIFICADO."
-    is_valid_fake = sig_manager.verify_signature(doc_manipulado, signature, user)
-    if not is_valid_fake:
-        print("   ✓ El sistema detectó la manipulación correctamente")
-    else:
-        print("   ✗ PELIGRO: El sistema aceptó un documento modificado")
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
-    test_signature_module()
